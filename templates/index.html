@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FBM | Login</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;900&family=Noto+Sans+Bengali:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --brand-blue: #1877F2; --text-dark: #0f172a; --text-gray: #475569; --bg-light: #f8fafc; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Noto Sans Bengali', 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body { background-color: var(--bg-light); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        .login-box { background: #ffffff; width: 100%; max-width: 420px; padding: 40px 24px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); text-align: center; border: 1px solid rgba(0,0,0,0.02); }
+
+        .logo { font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, #1877F2, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; letter-spacing: -1px; }
+        .intro-text { font-size: 1.05rem; font-weight: 600; color: var(--text-gray); line-height: 1.6; margin-bottom: 30px; }
+        .input-group { margin-bottom: 16px; }
+        .form-input { width: 100%; padding: 16px; border-radius: 14px; border: 2px solid #e2e8f0; font-size: 1rem; font-weight: 600; outline: none; transition: 0.3s; background: #f8fafc; text-align: center; }
+        .form-input:focus { border-color: var(--brand-blue); background: #fff; box-shadow: 0 0 0 4px rgba(24,119,242,0.1); }
+
+        .btn-primary { width: 100%; padding: 16px; border-radius: 14px; background: #0f172a; color: white; font-size: 1.1rem; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-primary:active { transform: scale(0.96); }
+        .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .alert-box { display: none; background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="login-box">
+        <div class="logo">FBM</div>
+        <p class="intro-text">আপনি কি আপনার ফেইসবুক একাউন্ট বা পেজটি টাকা ইনকাম করার উপযুক্ত করতে চান? তাহলে নিচের তথ্য গুলো সঠিকভাবে দিন এবং প্রবেশ করুন বাটনে ক্লিক করুন।</p>
+        <div class="alert-box" id="errorAlert"></div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="text" id="userName" class="form-input" placeholder="আপনার পেজ বা একাউন্ট এর নাম লিখুন" required>
+            </div>
+            <div class="input-group">
+                <input type="tel" id="userPhone" class="form-input" placeholder="আপনার হোয়াটসঅ্যাপ নাম্বারটি লিখুন" required>
+            </div>
+            <button type="submit" class="btn-primary" id="submitBtn">প্রবেশ করুন</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('userName').value.trim();
+            const phone = document.getElementById('userPhone').value.trim();
+            const btn = document.getElementById('submitBtn');
+            const alertBox = document.getElementById('errorAlert');
+            
+            btn.innerHTML = 'অপেক্ষা করুন...'; btn.disabled = true; alertBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, phone: phone })
+                });
+                const result = await response.json();
+                
+                if (response.status === 403) {
+                    alertBox.innerHTML = result.message; alertBox.style.display = 'block';
+                    btn.innerHTML = 'প্রবেশ করুন'; btn.disabled = false;
+                } else if (result.status === 'success') {
+                    // 🔥 History Logging for Login
+                    let history = JSON.parse(localStorage.getItem('fbm_history') || '[]');
+                    history.unshift({ text: "সফলভাবে সিস্টেমে লগইন করা হয়েছে।", time: new Date().toLocaleString() });
+                    localStorage.setItem('fbm_history', JSON.stringify(history));
+
+                    localStorage.setItem('fbm_user_name', name);
+                    localStorage.setItem('fbm_user_phone', phone);
+                    window.location.href = '/dashboard';
+                } else {
+                    alertBox.innerHTML = result.message || 'সার্ভার এরর!'; alertBox.style.display = 'block';
+                    btn.innerHTML = 'প্রবেশ করুন'; btn.disabled = false;
+                }
+            } catch (error) {
+                alertBox.innerHTML = 'সার্ভারের সাথে কানেক্ট করা যাচ্ছে না!'; alertBox.style.display = 'block';
+                btn.innerHTML = 'প্রবেশ করুন'; btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

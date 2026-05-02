@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FBM Admin | Executive Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --brand: #2563eb; --brand-light: #eff6ff; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --border: #e2e8f0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { background: #fff; padding: 40px; border-radius: 24px; text-align: center; width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        .input-form { width: 100%; padding: 14px 16px; background: #f8fafc; border: 2px solid var(--border); color: var(--text); border-radius: 12px; outline: none; font-size: 1rem; margin-bottom: 15px; font-weight: 600; transition: 0.3s;}
+        .input-form:focus { border-color: var(--brand); background: #fff;}
+        
+        .sidebar { width: 280px; background: #0f172a; color: #fff; padding: 24px; display: flex; flex-direction: column; transition: 0.3s ease; z-index: 100; flex-shrink: 0;}
+        .logo { font-size: 1.5rem; font-weight: 900; margin-bottom: 40px; } .logo span { color: var(--brand); }
+        .close-sidebar { display: none; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; float:right; margin-top: -5px;}
+        
+        .nav-link { padding: 12px 16px; color: #94a3b8; cursor: pointer; border-radius: 12px; margin-bottom: 8px; font-weight: 600; transition: 0.2s; display: flex; justify-content: space-between; align-items: center;}
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: #fff; }
+        .badge { background: var(--brand); color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;}
+        
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;}
+        .topbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; background: var(--panel); border-bottom: 1px solid var(--border); }
+        .menu-toggle { display: none; background: none; border: none; font-size: 24px; cursor: pointer; margin-right: 15px; color: #0f172a;}
+        
+        .content-scroll { flex: 1; padding: 30px; overflow-y: auto; }
+        .view-pane { display: none; animation: fadeIn 0.3s; }
+        .view-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--panel); padding: 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .stat-val { font-size: 2.2rem; font-weight: 900; margin-bottom: 5px; color: var(--text); }
+        .stat-label { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .card { background: var(--panel); border-radius: 20px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .section-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+        
+        .table-responsive { overflow-x: auto; width: 100%; border-radius: 12px; border: 1px solid var(--border); -webkit-overflow-scrolling: touch;}
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 800; background: #f8fafc; }
+        td { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+        
+        .input-row { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;}
+        .input-row > * { flex: 1 1 calc(33.333% - 15px); min-width: 200px; margin-bottom: 0;}
+        .btn { padding: 14px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; border: none; color: white; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s;}
+        .btn-primary { background: var(--text); } .btn-success { background: var(--success); } .btn-danger { background: var(--danger); }
+        .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+        .btn-sm { padding: 8px 14px; font-size: 0.8rem; border-radius: 8px;}
+        
+        .status-badge { padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; }
+        .bg-green { background: #d1fae5; color: #059669; } .bg-red { background: #fee2e2; color: #e11d48; } .bg-blue { background: #dbeafe; color: #2563eb; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: var(--panel); width: 100%; max-width: 450px; padding: 30px; border-radius: 24px; max-height: 90vh; overflow-y: auto;}
+        .modal-overlay.active { display: flex; }
+
+        .chat-layout { display: flex; height: 600px; gap: 20px; }
+        .chat-sidebar { width: 280px; background: var(--panel); border-radius: 20px; overflow-y: auto; border: 1px solid var(--border); flex-shrink: 0;}
+        .chat-user-item { padding: 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s;}
+        .chat-user-item.active { background: var(--brand-light); border-left: 4px solid var(--brand); }
+        .chat-window { flex: 1; background: var(--panel); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f8fafc;}
+        .msg { padding: 12px 16px; border-radius: 16px; max-width: 80%; font-size: 0.95rem; font-weight: 500; display: inline-block;}
+        .msg-admin { background: var(--brand); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; } 
+        .msg-user { background: #e2e8f0; color: #0f172a; align-self: flex-start; border-bottom-left-radius: 4px; }
+        
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; height: 100vh; left: -280px; box-shadow: 20px 0 50px rgba(0,0,0,0.2); }
+            .sidebar.open { left: 0; } .close-sidebar, .menu-toggle { display: block; }
+            .topbar { padding: 15px 20px; }
+            .content-scroll { padding: 15px; }
+            .input-row > * { flex: 1 1 100%; min-width: 100%; } 
+            .chat-layout { flex-direction: column; height: auto; } .chat-sidebar { width: 100%; height: 250px; } .chat-window { height: 500px; }
+            .stat-card { padding: 15px; }
+            table { min-width: 700px; } 
+        }
+    </style>
+</head>
+<body>
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2 style="font-weight: 900; margin-bottom: 5px; font-size: 1.8rem; color: #0f172a;">Executive Access</h2>
+            <p style="color: var(--muted); margin-bottom: 24px;">Sign in to your dashboard</p>
+            <input type="email" id="adminEmail" class="input-form" placeholder="Email Address (e.g. admin@fbm.com)">
+            <input type="password" id="adminPin" class="input-form" placeholder="Security PIN (e.g. 1234)" style="letter-spacing: 5px; font-size:1.2rem; text-align:center;">
+            <button class="btn btn-primary" style="width: 100%; font-size: 1.1rem; margin-top: 10px; height: 54px;" onclick="login()">Log In</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="logo"><div>FBM<span>.Panel</span></div><button class="close-sidebar" onclick="toggleSidebar()">&times;</button></div>
+        <div class="nav-link active" data-perm="all" onclick="switchTab('dashboard')">Dashboard</div>
+        <div class="nav-link" data-perm="approvals" onclick="switchTab('approvals')">Approvals <span class="badge" id="pendingBadge">0</span></div>
+        <div class="nav-link" data-perm="users" onclick="switchTab('users')">User Management</div>
+        <div class="nav-link" data-perm="transactions" onclick="switchTab('transactions')">Sales & Downloads</div>
+        <div class="nav-link" data-perm="offers" onclick="switchTab('offers')">Offers & Events</div>
+        <div class="nav-link" data-perm="tasks" onclick="switchTab('tasks')">Task Config</div>
+        <div class="nav-link" data-perm="videos" onclick="switchTab('videos')">Video Config</div>
+        <div class="nav-link" data-perm="chat" onclick="switchTab('chat')">Live Support</div>
+        <div class="nav-link" data-perm="admin_only" id="navSettings" onclick="switchTab('settings')">System Settings</div>
+        <div class="nav-link" data-perm="admin_only" id="navStaff" onclick="switchTab('staff')">Staff & Roles</div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <div style="display: flex; align-items: center;"><button class="menu-toggle" onclick="toggleSidebar()">☰</button><h2 id="pageTitle" style="font-weight: 800;">Overview</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="text-align: right; display: none;" id="userProfileInfo">
+                    <div style="font-weight: 700; font-size: 0.9rem;" id="adminNameDisplay">Name</div>
+                    <div style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight:800;" id="adminRoleDisplay">Role</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="content-scroll">
+            
+            <div id="dashboard" class="view-pane active">
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-val" id="statTodayEarn">৳0</div><div class="stat-label">Today's Earnings</div></div>
+                    <div class="stat-card"><div class="stat-val" id="statTotalEarn">৳0</div><div class="stat-label">Total Earnings</div></div>
+                    <div class="stat-card"><div class="stat-val" id="statTodayUser">0</div><div class="stat-label">New Users Today</div></div>
+                    <div class="stat-card"><div class="stat-val" id="statTotalUser">0</div><div class="stat-label">Total Users</div></div>
+                </div>
+            </div>
+
+            <div id="approvals" class="view-pane">
+                <div class="card"><div class="section-title">Pending Task Approvals</div>
+                    <div class="table-responsive"><table><thead><tr><th>User Info</th><th>Task Details</th><th>Time</th><th>Actions</th></tr></thead><tbody id="approvalsTable"></tbody></table></div>
+                </div>
+            </div>
+
+            <div id="users" class="view-pane">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="section-title" style="margin:0;">User Database</div>
+                        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Add User</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table><thead><tr><th>User</th><th>Phone</th><th>Limits (Free/Paid)</th><th>Status</th><th>Actions</th></tr></thead><tbody id="usersTable"></tbody></table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transactions" class="view-pane">
+                <div class="card"><div class="section-title">Sales & Free Downloads</div>
+                    <div class="table-responsive"><table><thead><tr><th>User</th><th>Video</th><th>Type</th><th>TrxID</th><th>Amount</th><th>Date</th></tr></thead><tbody id="transactionsTable"></tbody></table></div>
+                </div>
+            </div>
+
+            <div id="offers" class="view-pane">
+                <div class="card"><h3 class="section-title" style="margin-bottom: 15px;">Create Offer Banner</h3>
+                    <div class="input-row"><input type="text" id="offTitle" class="input-form" placeholder="Offer Title"><input type="text" id="offDesc" class="input-form" placeholder="Short Description"></div>
+                    <div class="input-row"><input type="url" id="offImg" class="input-form" placeholder="Image URL (Optional)"><button class="btn btn-primary" style="height: 52px;" onclick="addOffer()">Add Offer</button></div>
+                </div>
+                <div class="card"><div class="table-responsive"><table><thead><tr><th>Image</th><th>Title</th><th>Description</th><th>Action</th></tr></thead><tbody id="offersTable"></tbody></table></div></div>
+            </div>
+
+            <div id="tasks" class="view-pane">
+                <div class="card"><h3 class="section-title" style="margin-bottom: 15px;">Create Dynamic Task</h3>
+                    <div class="input-row"><input type="number" id="taskSerial" class="input-form" placeholder="Step Serial (1, 2, 3...)"><input type="text" id="taskTitle" class="input-form" placeholder="Task Title"></div>
+                    <div class="input-row"><input type="text" id="taskDesc" class="input-form" placeholder="Full Instructions"><input type="url" id="taskImg" class="input-form" placeholder="Image URL (Optional)"><button class="btn btn-primary" style="height: 52px;" onclick="addTask()">Save Task</button></div>
+                </div>
+                <div class="card"><div class="table-responsive"><table><thead><tr><th>Step</th><th>Title</th><th>Image</th><th>Action</th></tr></thead><tbody id="tasksTable"></tbody></table></div></div>
+            </div>
+
+            <div id="videos" class="view-pane">
+                <div class="card"><h3 class="section-title" style="margin-bottom: 15px;">Add Video to Panel</h3>
+                    <div class="input-row"><input type="text" id="vidYtId" class="input-form" placeholder="YouTube Video ID"><input type="text" id="vidTitle" class="input-form" placeholder="Video Title"><select id="vidType" class="input-form"><option value="free">Free Video</option><option value="paid">Paid Video</option></select></div>
+                    <div class="input-row"><input type="text" id="vidViews" class="input-form" placeholder="Target Views (e.g. 15k)"><input type="number" id="vidPrice" class="input-form" placeholder="Price in BDT (0 for free)"><button class="btn btn-success" style="height: 52px;" onclick="addVideo()">Save Video</button></div>
+                </div>
+                <div class="card"><div class="table-responsive"><table><thead><tr><th>YT ID</th><th>Title</th><th>Type</th><th>Price</th><th>Action</th></tr></thead><tbody id="videosTable"></tbody></table></div></div>
+            </div>
+
+            <div id="chat" class="view-pane">
+                <div class="chat-layout">
+                    <div class="chat-sidebar" id="chatUsersList"></div>
+                    <div class="chat-window">
+                        <div style="padding: 20px; background: #fff; font-weight: 800; border-bottom: 1px solid var(--border);" id="activeChatName">Select a user</div>
+                        <div class="chat-messages" id="chatMessages"></div>
+                        <div style="display: flex; padding: 15px; background: #fff; border-top: 1px solid var(--border); gap: 10px;">
+                            <input type="text" id="chatInputMsg" class="input-form" style="margin:0;" placeholder="Type reply...">
+                            <button class="btn btn-primary" onclick="sendChat()">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="view-pane">
+                <div class="card" style="max-width: 600px;">
+                    <div class="section-title">Payment Configurations</div>
+                    <label style="font-size: 0.85rem; font-weight: 700; color: var(--muted);">bKash Personal Number</label>
+                    <input type="text" id="setBkash" class="input-form">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: var(--muted);">Nagad Personal Number</label>
+                    <input type="text" id="setNagad" class="input-form">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: var(--muted);">Payment Instructions (Shown in app)</label>
+                    <input type="text" id="setInst" class="input-form">
+                    <button class="btn btn-success" style="width: 100%; height: 52px;" onclick="saveSettings()">Save Configuration</button>
+                </div>
+            </div>
+
+            <div id="staff" class="view-pane">
+                <div class="card"><h3 class="section-title" style="margin-bottom: 15px;">Add/Manage Staff</h3>
+                    <div class="input-row"><input type="hidden" id="staffId"><input type="email" id="staffEmail" class="input-form" placeholder="Email Address"><input type="text" id="staffName" class="input-form" placeholder="Name"></div>
+                    <div class="input-row">
+                        <input type="text" id="staffPin" class="input-form" placeholder="Login PIN" maxlength="4">
+                        <select id="staffRole" class="input-form"><option value="executive">Executive</option><option value="admin">Super Admin</option></select>
+                        <select id="staffPerms" class="input-form"><option value="all">Full Access</option><option value="approvals,chat">Approvals & Chat Only</option><option value="users,transactions">Users & Sales Only</option></select>
+                    </div>
+                    <div class="input-row">
+                        <select id="staffStatus" class="input-form"><option value="active">Active</option><option value="suspended">Suspended</option></select>
+                        <button class="btn btn-primary" style="height: 52px;" onclick="saveStaff()">Save Staff</button>
+                        <button class="btn btn-outline" style="height: 52px;" onclick="resetStaffForm()">Clear Form</button>
+                    </div>
+                </div>
+                <div class="card"><div class="table-responsive"><table><thead><tr><th>Email/Name</th><th>Role</th><th>Access</th><th>Status</th><th>Actions</th></tr></thead><tbody id="staffTable"></tbody></table></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Edit Modal -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 20px; font-weight: 800;" id="userModalTitle">Add/Edit User</h3>
+            <input type="hidden" id="editUserId">
+            <input type="text" id="editUserName" class="input-form" placeholder="Full Name">
+            <input type="text" id="editUserPhone" class="input-form" placeholder="WhatsApp Number">
+            <input type="number" id="editUserFree" class="input-form" placeholder="Max Free Limits">
+            <select id="editUserStatus" class="input-form"><option value="active">Active</option><option value="suspended">Suspended</option></select>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('userModal').classList.remove('active')">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="saveUser()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPermissions = 'all'; let currentRole = ''; let activeChatPhone = null;
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+        window.onload = async () => {
+            const res = await fetch('/api/admin/check');
+            if(res.status === 200) { const data = await res.json(); unlockPanel(data.role, data.name, data.permissions); }
+        }
+
+        async function login() {
+            const email = document.getElementById('adminEmail').value; const pin = document.getElementById('adminPin').value;
+            const res = await fetch('/api/admin/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, pin}) });
+            const data = await res.json();
+            if(data.status === 'success') unlockPanel(data.role, data.name, data.permissions); else alert(data.message);
+        }
+
+        async function logout() { await fetch('/api/admin/logout', {method: 'POST'}); location.reload(); }
+
+        function unlockPanel(role, name, perms) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            currentRole = role; currentPermissions = perms;
+            
+            document.getElementById('userProfileInfo').style.display = 'block';
+            document.getElementById('adminNameDisplay').innerText = name;
+            document.getElementById('adminRoleDisplay').innerText = role;
+            
+            if(role !== 'admin') {
+                document.getElementById('navSettings').style.display = 'none';
+                document.getElementById('navStaff').style.display = 'none';
+                
+                if(perms !== 'all') {
+                    const permArray = perms.split(',');
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        const linkPerm = link.getAttribute('data-perm');
+                        if(linkPerm !== 'all' && linkPerm !== 'admin_only' && !permArray.includes(linkPerm)) { link.style.display = 'none'; }
+                    });
+                }
+            } else {
+                document.getElementById('navSettings').style.display = 'flex';
+                document.getElementById('navStaff').style.display = 'flex';
+            }
+            
+            loadAllData(); setInterval(loadAllData, 5000);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active'); event.target.classList.add('active');
+            if(window.innerWidth <= 768) toggleSidebar(); 
+            const titles = { 'dashboard': 'Overview', 'approvals': 'Approvals', 'users': 'Users', 'transactions': 'Transactions', 'offers': 'Offers', 'tasks': 'Tasks', 'videos': 'Videos', 'chat': 'Support', 'settings': 'Settings', 'staff': 'Staff' };
+            document.getElementById('pageTitle').innerText = titles[tabId];
+        }
+
+        async function loadAllData() {
+            loadStats(); loadApprovals(); loadUsers(); loadTransactions(); loadOffers(); loadTasks(); loadVideos(); loadChatUsers();
+            if(currentRole === 'admin') { loadSettings(); loadStaff(); }
+            if(activeChatPhone) loadChatMessages(activeChatPhone, document.getElementById('activeChatName').innerText.split('(')[0].trim());
+        }
+
+        async function loadStats() {
+            const res = await fetch('/api/admin/stats'); const data = await res.json();
+            document.getElementById('statTotalUser').innerText = data.total_users; document.getElementById('statTodayUser').innerText = data.today_users;
+            document.getElementById('statTotalEarn').innerText = `৳${data.total_earning}`; document.getElementById('statTodayEarn').innerText = `৳${data.today_earning}`;
+            document.getElementById('pendingBadge').innerText = data.pending_tasks;
+        }
+
+        async function loadApprovals() {
+            const res = await fetch('/api/admin/approvals'); const data = await res.json(); let html = '';
+            data.forEach(item => {
+                html += `<tr><td><strong>${item.full_name}</strong><br><span style="font-size:0.75rem; color:var(--muted);">${item.phone}</span></td><td>${item.title}</td><td>${new Date(item.timestamp).toLocaleString()}</td>
+                    <td style="display:flex; gap:5px;"><button class="btn btn-success btn-sm" onclick="reviewTask(${item.id}, '${item.phone}', 'approve')">Approve</button> <button class="btn btn-danger btn-sm" onclick="reviewTask(${item.id}, '${item.phone}', 'reject')">Reject</button></td></tr>`;
+            });
+            document.getElementById('approvalsTable').innerHTML = html;
+        }
+        async function reviewTask(id, phone, action) { await fetch('/api/admin/approvals', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id, phone, action}) }); loadAllData(); }
+
+        async function loadUsers() {
+            const res = await fetch('/api/admin/users'); const data = await res.json(); let html = '';
+            data.forEach(u => {
+                const b = u.status === 'active' ? 'bg-green' : 'bg-red';
+                html += `<tr><td><strong>${u.full_name}</strong></td><td>${u.phone}</td><td>${u.free_max} Free / ${u.paid_used} Paid</td><td><span class="status-badge ${b}">${u.status}</span></td>
+                    <td style="display:flex; gap:5px;"><button class="btn btn-outline btn-sm" onclick="openUserEdit(${u.id}, '${u.full_name}', '${u.phone}', ${u.free_max}, '${u.status}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button></td></tr>`;
+            });
+            document.getElementById('usersTable').innerHTML = html;
+        }
+        function openUserModal() { document.getElementById('userModalTitle').innerText = 'Add New User'; document.getElementById('editUserId').value = ''; document.getElementById('editUserName').value = ''; document.getElementById('editUserPhone').value = ''; document.getElementById('editUserFree').value = '0'; document.getElementById('editUserStatus').value = 'active'; document.getElementById('userModal').classList.add('active'); }
+        function openUserEdit(id, name, phone, max, status) { document.getElementById('userModalTitle').innerText = 'Edit User'; document.getElementById('editUserId').value = id; document.getElementById('editUserName').value = name; document.getElementById('editUserPhone').value = phone; document.getElementById('editUserFree').value = max; document.getElementById('editUserStatus').value = status; document.getElementById('userModal').classList.add('active'); }
+        async function saveUser() {
+            const id = document.getElementById('editUserId').value; const name = document.getElementById('editUserName').value; const phone = document.getElementById('editUserPhone').value; const free_max = document.getElementById('editUserFree').value; const status = document.getElementById('editUserStatus').value;
+            const method = id ? 'PUT' : 'POST';
+            await fetch('/api/admin/users', { method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify({id, name, phone, free_max, status}) });
+            document.getElementById('userModal').classList.remove('active'); loadUsers(); loadStats();
+        }
+        async function deleteUser(id) { if(confirm('Delete user permanently?')) { await fetch('/api/admin/users', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) }); loadUsers(); } }
+
+        async function loadTransactions() {
+            const res = await fetch('/api/admin/transactions'); const data = await res.json(); let html = '';
+            data.forEach(t => {
+                const b = t.txn_type === 'free' ? 'bg-blue' : 'bg-green';
+                html += `<tr><td><strong>${t.full_name}</strong><br><span style="font-size:0.75rem">${t.user_phone}</span></td><td>${t.video_title}</td><td><span class="status-badge ${b}">${t.txn_type}</span></td><td>${t.txn_id || '-'}</td><td>৳${t.amount}</td><td>${new Date(t.timestamp).toLocaleDateString()}</td></tr>`;
+            });
+            document.getElementById('transactionsTable').innerHTML = html;
+        }
+
+        async function loadOffers() {
+            const res = await fetch('/api/admin/offers'); const data = await res.json(); let html = '';
+            data.forEach(o => { html += `<tr><td>${o.image_url ? `<img src="${o.image_url}" height="40" style="border-radius:6px;">` : 'No Image'}</td><td><strong>${o.title}</strong></td><td>${o.description}</td><td><button class="btn btn-danger btn-sm" onclick="deleteOffer(${o.id})">Del</button></td></tr>`; });
+            document.getElementById('offersTable').innerHTML = html;
+        }
+        async function addOffer() {
+            const data = { title: document.getElementById('offTitle').value, desc: document.getElementById('offDesc').value, image: document.getElementById('offImg').value };
+            if(!data.title) return; await fetch('/api/admin/offers', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); loadOffers();
+        }
+        async function deleteOffer(id) { await fetch('/api/admin/offers', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) }); loadOffers(); }
+
+        async function loadTasks() {
+            const res = await fetch('/api/admin/tasks'); const data = await res.json(); let html = '';
+            data.forEach(t => { html += `<tr><td>Step ${t.serial_num}</td><td><strong>${t.title}</strong></td><td>${t.image_url ? 'Yes':'No'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteTask(${t.id})">Del</button></td></tr>`; });
+            document.getElementById('tasksTable').innerHTML = html;
+        }
+        async function addTask() {
+            const data = { serial: document.getElementById('taskSerial').value, title: document.getElementById('taskTitle').value, desc: document.getElementById('taskDesc').value, image: document.getElementById('taskImg').value };
+            if(!data.serial || !data.title) return; await fetch('/api/admin/tasks', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); loadTasks();
+        }
+        async function deleteTask(id) { await fetch('/api/admin/tasks', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) }); loadTasks(); }
+
+        async function loadVideos() {
+            const res = await fetch('/api/admin/videos'); const data = await res.json(); let html = '';
+            data.forEach(v => { html += `<tr><td>${v.yt_id}</td><td><strong>${v.title}</strong></td><td><span class="status-badge ${v.v_type==='paid'?'bg-green':'bg-blue'}">${v.v_type}</span></td><td>৳${v.price || 0}</td><td><button class="btn btn-danger btn-sm" onclick="deleteVideo(${v.id})">Del</button></td></tr>`; });
+            document.getElementById('videosTable').innerHTML = html;
+        }
+        async function addVideo() {
+            const data = { yt_id: document.getElementById('vidYtId').value, title: document.getElementById('vidTitle').value, v_type: document.getElementById('vidType').value, views: document.getElementById('vidViews').value, price: document.getElementById('vidPrice').value };
+            if(!data.yt_id || !data.title) return; await fetch('/api/admin/videos', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); loadVideos();
+        }
+        async function deleteVideo(id) { await fetch('/api/admin/videos', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) }); loadVideos(); }
+
+        async function loadSettings() {
+            const res = await fetch('/api/admin/settings'); const data = await res.json();
+            document.getElementById('setBkash').value = data.bkash_number || ''; document.getElementById('setNagad').value = data.nagad_number || ''; document.getElementById('setInst').value = data.payment_instruction || '';
+        }
+        async function saveSettings() {
+            const data = { bkash_number: document.getElementById('setBkash').value, nagad_number: document.getElementById('setNagad').value, payment_instruction: document.getElementById('setInst').value };
+            await fetch('/api/admin/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); alert('Settings Saved');
+        }
+
+        async function loadStaff() {
+            const res = await fetch('/api/admin/staff'); const data = await res.json(); let html = '';
+            data.forEach(s => { 
+                const b = s.status === 'active' ? 'bg-green' : 'bg-red';
+                html += `<tr><td><strong>${s.username}</strong><br><span style="font-size:0.75rem">${s.email}</span></td><td>${s.role.toUpperCase()}</td><td>${s.permissions}</td><td><span class="status-badge ${b}">${s.status}</span></td>
+                <td style="display:flex; gap:5px;"><button class="btn btn-outline btn-sm" onclick="editStaff(${s.id}, '${s.email}', '${s.username}', '${s.pin}', '${s.role}', '${s.permissions}', '${s.status}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteStaff(${s.id})">Del</button></td></tr>`; 
+            });
+            document.getElementById('staffTable').innerHTML = html;
+        }
+        function editStaff(id, email, name, pin, role, perms, status) {
+            document.getElementById('staffId').value = id; document.getElementById('staffEmail').value = email; document.getElementById('staffName').value = name;
+            document.getElementById('staffPin').value = pin; document.getElementById('staffRole').value = role; document.getElementById('staffPerms').value = perms; document.getElementById('staffStatus').value = status;
+        }
+        function resetStaffForm() { document.getElementById('staffId').value = ''; document.getElementById('staffEmail').value = ''; document.getElementById('staffName').value = ''; document.getElementById('staffPin').value = ''; }
+        async function saveStaff() {
+            const id = document.getElementById('staffId').value;
+            const data = { id: id, email: document.getElementById('staffEmail').value, username: document.getElementById('staffName').value, pin: document.getElementById('staffPin').value, role: document.getElementById('staffRole').value, permissions: document.getElementById('staffPerms').value, status: document.getElementById('staffStatus').value };
+            if(!data.email || !data.pin) return; const method = id ? 'PUT' : 'POST';
+            await fetch('/api/admin/staff', { method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); loadStaff(); resetStaffForm();
+        }
+        async function deleteStaff(id) { await fetch('/api/admin/staff', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id}) }); loadStaff(); }
+
+        async function loadChatUsers() {
+            const res = await fetch('/api/admin/chats/users'); const data = await res.json(); let html = '';
+            data.forEach(u => { html += `<div class="chat-user-item ${u.user_phone === activeChatPhone ? 'active' : ''}" onclick="loadChatMessages('${u.user_phone}', '${u.name}')"><strong>${u.name}</strong><br><span style="font-size:0.8rem;color:var(--muted);">${u.user_phone}</span></div>`; });
+            document.getElementById('chatUsersList').innerHTML = html;
+        }
+        async function loadChatMessages(phone, name) {
+            activeChatPhone = phone; document.getElementById('activeChatName').innerText = `${name} (${phone})`;
+            const res = await fetch(`/api/admin/chats/${phone}`); const data = await res.json(); let html = '';
+            data.forEach(m => { html += `<div class="msg ${m.sender === 'admin' ? 'msg-admin' : 'msg-user'}">${m.message}</div>`; });
+            const box = document.getElementById('chatMessages'); box.innerHTML = html; box.scrollTop = box.scrollHeight;
+        }
+        async function sendChat() {
+            if(!activeChatPhone) return; const msg = document.getElementById('chatInputMsg').value; if(!msg) return;
+            await fetch(`/api/admin/chats/${activeChatPhone}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: msg, sender: 'admin'}) });
+            document.getElementById('chatInputMsg').value = ''; loadChatMessages(activeChatPhone, document.getElementById('activeChatName').innerText.split('(')[0]);
+        }
+    </script>
+</body>
+</html>
